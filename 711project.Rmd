@@ -11,3 +11,27 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
+
+```{r import data}
+install.packages("foreign")
+install.packages("downloader")
+install.packages("utils")
+install.packages("readr")
+library(foreign)
+library(downloader)
+library(utils)
+library(readr)
+if(!file.exists("data_gwang37")){
+  dir.create("data_gwang37")
+}
+setwd("./data_gwang37")
+
+fileurl = "ftp://ftp.nhtsa.dot.gov/fars/2015/National/FARS2015NationalCSV.zip"
+download.file(fileurl,destfile = "./data_gwang37/FARS2015NationalCSV.zip",method = "curl")
+unzip("./data_gwang37/FARS2015NationalCSV.zip")
+
+nmcrash = read_csv("nmcrash.csv")
+pbtype = read_csv("pbtype.csv")
+
+
+```
