@@ -124,6 +124,63 @@ $(document).ready(function () {
 
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
+<p>The aim of this analysis is to estimate the relationship between fatal crashes and speeding, distracted driving. The data used in this researchh is obtained from the Fatality Analysis Reporting System of the National Highway Traffic Safety Administration, focused on the Maryland and Washington, DC area from years 2013 to 2015.</p>
+<pre class="r"><code>#install.packages(&quot;foreign&quot;)
+#install.packages(&quot;downloader&quot;)
+#install.packages(&quot;utils&quot;)
+#install.packages(&quot;readr&quot;)
+library(foreign)
+library(downloader)
+library(utils)
+library(readr)
+if(!file.exists(&quot;data_gwang37&quot;)){
+  dir.create(&quot;data_gwang37&quot;)
+}
+setwd(&quot;./data_gwang37&quot;)
+
+fileurl13 = &quot;ftp://ftp.nhtsa.dot.gov/fars/2013/National/FARS2013NationalCSV.zip&quot;
+fileurl14 = &quot;ftp://ftp.nhtsa.dot.gov/fars/2014/National/FARS2014NationalCSV.zip&quot;
+fileurl15 = &quot;ftp://ftp.nhtsa.dot.gov/fars/2015/National/FARS2015NationalCSV.zip&quot;
+
+download.file(fileurl13,destfile = &quot;./data_gwang37/FARS2013NationalCSV.zip&quot;,method = &quot;curl&quot;)</code></pre>
+<pre><code>## Warning in download.file(fileurl13, destfile = &quot;./data_gwang37/
+## FARS2013NationalCSV.zip&quot;, : download had nonzero exit status</code></pre>
+<pre class="r"><code>download.file(fileurl14,destfile = &quot;./data_gwang37/FARS2014NationalCSV.zip&quot;,method = &quot;curl&quot;)</code></pre>
+<pre><code>## Warning in download.file(fileurl14, destfile = &quot;./data_gwang37/
+## FARS2014NationalCSV.zip&quot;, : download had nonzero exit status</code></pre>
+<pre class="r"><code>download.file(fileurl15,destfile = &quot;./data_gwang37/FARS2015NationalCSV.zip&quot;,method = &quot;curl&quot;)</code></pre>
+<pre><code>## Warning in download.file(fileurl15, destfile = &quot;./data_gwang37/
+## FARS2015NationalCSV.zip&quot;, : download had nonzero exit status</code></pre>
+<pre class="r"><code>unzip(&quot;./data_gwang37/FARS2015NationalCSV.zip&quot;)</code></pre>
+<pre><code>## Warning in unzip(&quot;./data_gwang37/FARS2015NationalCSV.zip&quot;): error 1 in
+## extracting from zip file</code></pre>
+<pre class="r"><code>nmcrash = read_csv(&quot;nmcrash.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   STATE = col_integer(),
+##   ST_CASE = col_integer(),
+##   VEH_NO = col_integer(),
+##   PER_NO = col_integer(),
+##   MTM_CRSH = col_integer()
+## )</code></pre>
+<pre class="r"><code>pbtype = read_csv(&quot;pbtype.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_integer(),
+##   PEDSNR = col_character()
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre class="r"><code>accident = read_csv(&quot;accident.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_integer(),
+##   TWAY_ID = col_character(),
+##   TWAY_ID2 = col_character(),
+##   LATITUDE = col_double(),
+##   LONGITUD = col_double(),
+##   RAIL = col_character()
+## )
+## See spec(...) for full column specifications.</code></pre>
 </div>
 
 

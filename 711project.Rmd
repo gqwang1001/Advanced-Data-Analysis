@@ -10,13 +10,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction
-
+The aim of this analysis is to estimate the relationship between fatal crashes and speeding, distracted driving. The data used in this research is obtained from the Fatality
+Analysis Reporting System of the National Highway Traffic Safety Administration, focused on the
+Maryland and Washington, DC area from years 2013 to 2015. We paid more attention on predicting the manner of collision on different speeding and distracted driving level. 
 
 ```{r import data}
-install.packages("foreign")
-install.packages("downloader")
-install.packages("utils")
-install.packages("readr")
+#install.packages("foreign")
+#install.packages("downloader")
+#install.packages("utils")
+#install.packages("readr")
 library(foreign)
 library(downloader)
 library(utils)
@@ -26,12 +28,18 @@ if(!file.exists("data_gwang37")){
 }
 setwd("./data_gwang37")
 
-fileurl = "ftp://ftp.nhtsa.dot.gov/fars/2015/National/FARS2015NationalCSV.zip"
-download.file(fileurl,destfile = "./data_gwang37/FARS2015NationalCSV.zip",method = "curl")
+fileurl13 = "ftp://ftp.nhtsa.dot.gov/fars/2013/National/FARS2013NationalCSV.zip"
+fileurl14 = "ftp://ftp.nhtsa.dot.gov/fars/2014/National/FARS2014NationalCSV.zip"
+fileurl15 = "ftp://ftp.nhtsa.dot.gov/fars/2015/National/FARS2015NationalCSV.zip"
+
+download.file(fileurl13,destfile = "./data_gwang37/FARS2013NationalCSV.zip",method = "curl")
+download.file(fileurl14,destfile = "./data_gwang37/FARS2014NationalCSV.zip",method = "curl")
+download.file(fileurl15,destfile = "./data_gwang37/FARS2015NationalCSV.zip",method = "curl")
+
 unzip("./data_gwang37/FARS2015NationalCSV.zip")
 
 nmcrash = read_csv("nmcrash.csv")
 pbtype = read_csv("pbtype.csv")
-
+accident = read_csv("accident.csv")
 
 ```
