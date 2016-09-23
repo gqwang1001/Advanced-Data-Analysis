@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 The aim of this analysis is to estimate the relationship between fatal crashes and speeding, distracted driving. The data used in this research is obtained from the Fatality
 Analysis Reporting System of the National Highway Traffic Safety Administration, focused on the
 Maryland and Washington, DC area from years 2013 to 2015. We paid more attention on predicting the manner of collision on different speeding and distracted driving level. 
+One other option is to estimate the number of fatality each month.
 
 ```{r import data}
 #install.packages("foreign")
@@ -23,23 +24,30 @@ library(foreign)
 library(downloader)
 library(utils)
 library(readr)
+library(ggplot2)
 if(!file.exists("data_gwang37")){
   dir.create("data_gwang37")
 }
-setwd("./data_gwang37")
+setwd("~/Dropbox/JHU/gwang37_project/data_gwang37")
 
 fileurl13 = "ftp://ftp.nhtsa.dot.gov/fars/2013/National/FARS2013NationalCSV.zip"
 fileurl14 = "ftp://ftp.nhtsa.dot.gov/fars/2014/National/FARS2014NationalCSV.zip"
 fileurl15 = "ftp://ftp.nhtsa.dot.gov/fars/2015/National/FARS2015NationalCSV.zip"
 
-download.file(fileurl13,destfile = "./data_gwang37/FARS2013NationalCSV.zip",method = "curl")
-download.file(fileurl14,destfile = "./data_gwang37/FARS2014NationalCSV.zip",method = "curl")
-download.file(fileurl15,destfile = "./data_gwang37/FARS2015NationalCSV.zip",method = "curl")
+#download.file(fileurl13,destfile = "./data_gwang37/FARS2013NationalCSV.zip",method = "curl")
+#download.file(fileurl14,destfile = "./data_gwang37/FARS2014NationalCSV.zip",method = "curl")
+#download.file(fileurl15,destfile = "./data_gwang37/FARS2015NationalCSV.zip",method = "curl")
 
-unzip("./data_gwang37/FARS2015NationalCSV.zip")
+#unzip("./data_gwang37/FARS2015NationalCSV.zip")
 
-nmcrash = read_csv("nmcrash.csv")
-pbtype = read_csv("pbtype.csv")
-accident = read_csv("accident.csv")
+accident15 = read_csv("FARS2015NationalCSV/accident.csv")
+accident14 = read.dbf("FARS2014NationalDBF/accident.dbf")
+accident13 = read.dbf("FARS2013NationalDBF/accident.dbf")
+
+accci_month = data.frame(year = rep(2013:2015,each = 12), month = rep(1:(12*3)),
+                         num_fatal = as.vector(cbind(as.vector(table(accident13$MONTH)),as.vector(table(accident14$MONTH)),as.vector(table(accident15$MONTH)))))
+
+ggplot(data = accci_month,aes(month,num_fatal))+geom_line()
+
 
 ```
