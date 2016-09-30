@@ -6,7 +6,23 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_chunk$set(echo = TRUE)
+# install.packages("foreign")
+# install.packages("downloader")
+# install.packages("utils")
+# install.packages("readr")
+# install.packages("xts")
+library(foreign)
+library(downloader)
+library(utils)
+library(readr)
+library(ggplot2)
+library(xts)
+setwd("/Users/guoqingwang/OneDrive - Johns Hopkins University/Coursework/dataananlysis/project/711project")
+yearlist =2001:2015
+accident = vector("list",length(yearlist))
+names(accident) = as.character(yearlist)
+year_names = as.character(yearlist)
 ```
 
 ## Introduction
@@ -15,23 +31,7 @@ Analysis Reporting System of the National Highway Traffic Safety Administration,
 Maryland and Washington, DC area from years 2013 to 2015. We paid more attention on predicting the manner of collision on different speeding and distracted driving level. 
 One other option is to estimate the number of fatality each month.
 
-```{r download data}
-install.packages("foreign")
-install.packages("downloader")
-install.packages("utils")
-install.packages("readr")
-install.packages("xts")
-library(foreign)
-library(downloader)
-library(utils)
-library(readr)
-library(ggplot2)
-library(xts)
-
-yearlist =2001:2015
-accident = vector("list",length(yearlist))
-names(accident) = as.character(yearlist)
-year_names = as.character(yearlist)
+```{r download data,eval=F}
 for(i in 1:length(yearlist)){
   if (yearlist[i]<2012){
     fileurl = paste0("ftp://ftp.nhtsa.dot.gov/fars/",yearlist[i],"/DBF/FARS",yearlist[i],".zip")
@@ -46,6 +46,12 @@ for(i in 1:length(yearlist)){
   }
 download.file(fileurl,destfile = destdir, method = "curl")
 unzip(destdir,exdir = paste0("../data",yearlist[i]))
+}
+```
+
+
+```{r exploratary}
+for(i in 1:length(yearlist)){
 accident1 = read.dbf(paste0("../data", yearlist[i],"/accident.dbf"))
 accident[[i]] = accident1
 }
@@ -60,5 +66,5 @@ accci_month = data.frame(year = rep(yearlist,each = 12), month = rep(1:(12*lengt
                          num_fatal = as.vector(month_acc),
                          ym = seq(as.Date(paste0(yearlist[1],"-01-01")),by = "month",along = rep(yearlist,each = 12)))
 
-ggplot(data = accci_month,aes(ym,num_fatal))+geom_line()
+ggplot(data = accci_month,aes(ym,num_fatal))+geom_line()+xlab("Year")+ylab("Number of Fatality")
 ```
