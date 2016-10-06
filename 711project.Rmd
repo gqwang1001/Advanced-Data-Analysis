@@ -1,7 +1,6 @@
 ---
-title: "711 Project"
+title: "The effects of gas prices on traffic fatalites among young adults in the US"
 author: "Guoqing Wang"
-date: "September 9, 2016"
 output: html_document
 ---
 
@@ -12,24 +11,23 @@ output: html_document
 # install.packages("utils")
 # install.packages("readr")
 # install.packages("xts")
+# install.packages("readxl")
 library(foreign)
 library(downloader)
 library(utils)
 library(readr)
 library(ggplot2)
 library(xts)
+library(readxl)
 setwd("/Users/guoqingwang/OneDrive - Johns Hopkins University/Coursework/dataananlysis/project/711project")
-yearlist =2001:2015
+yearlist =2003:2015
 accident = vector("list",length(yearlist))
 names(accident) = as.character(yearlist)
 year_names = as.character(yearlist)
 ```
 
 ## Introduction
-The aim of this analysis is to estimate the relationship between fatal crashes and speeding, distracted driving. The data used in this research is obtained from the Fatality
-Analysis Reporting System of the National Highway Traffic Safety Administration, focused on the
-Maryland and Washington, DC area from years 2013 to 2015. We paid more attention on predicting the manner of collision on different speeding and distracted driving level. 
-One other option is to estimate the number of fatality each month.
+The increasing gas price can lead to a decreasing trend of motor vehice fatalities. In general, higher prices lead to fewer miles driven, and lead to fewer chance for crash involvement and fewer fatalites. The aim of this analysis is to examine and estimate the relationship between fatal crashes and gas price. The data used in this research is obtained from the Fatality Analysis Reporting System of the National Highway Traffic Safety Administration. We are focusing on the year range from 1999 to 2008. The Annual average regular grade unleaded gasoline proces were obtained from Energy Information Administration (EIA), U.S. Department of Energy, which again will be focused on the year from 1999-2008. It may be reasonable to suppose the gasonline prices trend to be influenced by demand, as a price increase due to a higher demand for gasoline, which is a consequence of more miles driven and leads to higher fatalities. We therefore incorporate the demand of gasonline as a factor to estimate the price-fatality relationship. The data on the demond of gasonline is provided by the Energy Information Administration (EIA), U.S. Department of Energy. 
 
 ```{r download data,eval=F}
 for(i in 1:length(yearlist)){
@@ -44,9 +42,14 @@ for(i in 1:length(yearlist)){
                 "/National/FARS",yearlist[i],"NationalDBF.zip")
     destdir = paste0("../FARS",yearlist[i],"NationalDBF.zip")
   }
-download.file(fileurl,destfile = destdir, method = "curl")
-unzip(destdir,exdir = paste0("../data",yearlist[i]))
+  
+  download.file(fileurl,destfile = destdir, method = "curl")
+  unzip(destdir,exdir = paste0("../data",yearlist[i]))
 }
+gasurl = "https://www.eia.gov/dnav/pet/xls/PET_PRI_GND_DCUS_NUS_W.xls"
+gasdemand = "https://www.eia.gov/dnav/pet/hist_xls/A103600001m.xls"
+download.file(gasurl,destfile = paste0(getwd(),"/weeklygas.xls"),method = "curl")
+download.file(gasdemand,destfile = paste0(getwd(),"/gasdemand.xls"),method = "curl")
 ```
 
 
@@ -59,6 +62,7 @@ accident[[i]] = accident1
 month_acc = c()
 for(i in 1:length(yearlist)){
 month1 = accident[[year_names[i]]]
+#month_acc = cbind(month_acc,as.vector(table(month1[month1$STATE==25,]$MONTH)))
 month_acc = cbind(month_acc,as.vector(table(month1$MONTH)))
 }
 
@@ -67,4 +71,24 @@ accci_month = data.frame(year = rep(yearlist,each = 12), month = rep(1:(12*lengt
                          ym = seq(as.Date(paste0(yearlist[1],"-01-01")),by = "month",along = rep(yearlist,each = 12)))
 
 ggplot(data = accci_month,aes(ym,num_fatal))+geom_line()+xlab("Year")+ylab("Number of Fatality")
+
+
+gas_price = read_excel("weeklygas.xls",sheet = 2,skip = 2)
+
+gp = data.frame(Date = as.Date(gas_price$Date),regulargas = gas_price$`Weekly U.S. Regular All Formulations Retail Gasoline Prices  (Dollars per Gallon)`)
+ggplot(data = gp,aes(Date,regulargas))+geom_line()
+
+#extract data from 1999-2008
+gp1 = gp[gp$Date>="1999-01-01"& gp$Date<"2009-01-01",]
 ```
+
+## Next steps
+
+We will try to develop the model to regress the fatality count on the gas price. We will employ the generalized linear model with negative binormial link to build the model as follows. 
+
+$$
+Y_{st} = \beta_0 + \beta_1 GP_{st}+\beta_2 DM_{st} + \beta_3 V_s +\beta_4 W_t + \beta_5 Z_{st}
+$$
+
+where $s$ is the state, $t$ is the time in months.
+
