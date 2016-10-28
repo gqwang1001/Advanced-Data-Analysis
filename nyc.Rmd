@@ -1,0 +1,197 @@
+---
+title: "Gasoline Price effects on traffic Fatalities in New York City, 2001-2008"
+author: "Guoqing Wang"
+date: "10/24/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(foreign)
+library(downloader)
+library(utils)
+library(readr)
+library(ggplot2)
+library(xts)
+library(readxl)
+library(lubridate)
+library(reshape)
+library(zoo)
+library(XML)
+library(gridExtra)
+library(tsModel)
+library(lmtest)
+library(MASS)
+library(forecast)
+
+yearlist =2001:2008
+accident = vector("list",length(yearlist))
+names(accident) = as.character(yearlist)
+year_names = as.character(yearlist)
+for(i in 1:length(yearlist)){
+accident1 = read.dbf(paste0("../data", yearlist[i],"/accident.dbf"))
+accident[[i]] = accident1
+}
+```
+
+
+```{r aggregate accident data}
+data_nyc = vector("list",length = length(yearlist))
+for(i in (yearlist-yearlist[1]+1)){
+  print(i)
+    temp_acci = accident[[i]]
+     data_nyc[[i]] = temp_acci%>%filter(STATE== 36 & CITY==4170)%>%group_by(ST_CASE)%>%
+      summarise(fatal=sum(FATALS),Year = YEAR,Month = MONTH,Weather = WEATHER)
+}
+nyc = bind_rows(data_nyc)
+nyc1 = nyc%>%group_by(Year,Month)%>% summarise(fatal = sum(fatal))
+nyc1$time = c(1:96)
+```
+
+
+```{r gas price & unemployment rate}
+gasurl = "https://www.eia.gov/dnav/pet/hist_xls/EMM_EPMR_PTE_Y35NY_DPGm.xls"
+download.file(gasurl,destfile = "./nycgas.xls",method = "curl")
+gas.price = read_excel(path = "./nycgas.xls",skip = 2,sheet = 2)
+colnames(gas.price) = c("Date", "gas_price")
+gas.price = gas.price%>%mutate(Year = year(Date),Month = month(Date))%>%filter(Year>2000&Year<2009)%>% group_by(Year,Month)%>% summarise(gas_price)
+
+gas.price.nyc = data.frame(time = c(1:96),gasprice = gas.price$gas_price)
+
+
+
+URurl = "https://www.labor.ny.gov/stats/nyc/NYCLFSA.xls"
+download.file(URurl,destfile = "nycUR.xls")
+URnyc_temp=read_excel("nycUR.xls", skip=4,col_names = T)
+URnyc = data.frame(time = 1:96,UnempRate = URnyc_temp[300:395,6])
+names(URnyc) = c("time", "UnempRate")
+
+
+```
+
+```{r weather-precipation}
+preciptypeurl = "http://www.weather.gov/media/okx/Climate/CentralPark/monthlyannualprecip.pdf"
+download.file(preciptypeurl,destfile = "precip.pdf")
+
+weatherout1 = as.data.frame(extract_tables("precip.pdf",page = 3))
+weatherout2 = as.data.frame(extract_tables("precip.pdf",page = 4))
+
+weather_temp1 = rbind(weatherout1[47:53,-c(14)],weatherout2[2,-c(14)])
+names(weather_temp1) = c("Year",1:12)
+
+write.csv(x = weather_temp1,file = "precipitation.csv")
+
+
+weather = data.frame(time = 1:96, precip=as.numeric(as.vector(t(as.matrix(weather_temp1[,-1])))))
+
+temperatureURL = "http://www.weather.gov/media/okx/Climate/CentralPark/monthlyannualtemp.pdf"
+download.file(temperatureURL,destfile = "temp.pdf")
+temp1 = as.data.frame(extract_tables("temp.pdf",page = 3))
+temp2 = as.data.frame(extract_tables("temp.pdf",page = 4))
+weather_tempera1 = rbind(temp1[47:53,-c(14)],temp2[2,-c(14)])
+
+names(weather_tempera1) = c("Year",1:12)
+write.csv(x = weather_tempera1,file = "temperature.csv")
+
+
+
+weather.temp = data.frame(time = 1:96, temperature=as.numeric(as.vector(t(as.matrix(weather_tempera1[,-1])))))
+
+
+data.nyc = inner_join(nyc1,gas.price.nyc)%>%inner_join(.,weather)%>%inner_join(.,URnyc)%>%inner_join(., weather.temp)
+data.nyc$months = as.Date(as.yearmon(paste(rep(2001:2008, each = 12),rep(1:12,8),sep = "-")))
+data.nyc$UnempRate = data.nyc$UnempRate/100
+```
+
+```{r}
+symnum(cor(data.nyc[,c(3:8)]))
+```
+
+```{r EDA}
+dev.off()
+fig1 = ggplot(data=data.nyc,aes(months,fatal))+geom_point() + geom_smooth(method = 'glm',formula = y~ns(x,8*4),method.args = list(family = poisson))+ylab("Fatals")+xlab("Month")+ggtitle("(a) Fatality Vs. Time")
+
+fig2 = ggplot(data.nyc,aes(gasprice,fatal))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,2),method.args = list(family = poisson))+ylab("Fatals")+xlab("Gasoline Price ($)")+ggtitle("(b) Fatality Vs. Gasoline Price")
+
+fig3 = ggplot(data.nyc,aes(precip,fatal))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,6),method.args = list(family = poisson))+ylab("Fatals")+xlab("Precipitation (mm)")+ggtitle("(c) Fatality Vs. Precipitation")
+
+
+fig4 = ggplot(data.nyc,aes(UnempRate,fatal))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,6),method.args = list(family = poisson))+ylab("Fatals")+xlab("Unemployment Rate (%)")+ggtitle("(c) Fatality Vs. Unemployment Rate")
+fig5 = ggplot(data.nyc,aes(temperature,fatal))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,3),method.args = list(family = poisson))+ylab("Fatals")+xlab("Temperature (F)")+ggtitle("(d) Fatality Vs. Temperature")
+fig6 = ggplot(data.nyc,aes(months,gasprice))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,8*3),method.args = list(family = poisson))+ylab("gasprice")+xlab("Months")
+
+#ggplot(data.nyc,aes(months,UnempRate))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,5),method.args = list(family = poisson))+ylab("gasprice")+xlab("Months")
+
+#ggplot(data.nyc,aes(months,gasprice))+geom_point()+geom_smooth(method = 'glm',formula = y~ns(x,5),method.args = list(family = poisson))+ylab("gasprice")+xlab("Months")
+
+
+
+grid.arrange(fig1,fig2,fig5,fig4,ncol=2)
+```
+
+
+```{r model}
+
+fit1 = glm(fatal ~ ns(time,8*4), data = data.nyc, family = "poisson")
+aic = 1:12
+
+fit1.1 = glm(fatal ~ Lag(gasprice,0)+temperature + ns(precip,3) + ns(UnempRate,3)+ns(time,8*4), data = data.nyc,family = "poisson")
+
+aic[1] = fit1.1$aic
+
+for (k in 0:11){
+fit1.1 = glm(fatal ~ Lag(gasprice,0:k)+temperature + ns(precip,3)+ ns(UnempRate,3)+ns(time,8*4), data = data.nyc,family = "poisson")
+aic[k+1] = fit1.1$aic
+}
+
+
+fit2 = glm(fatal ~ Lag(gasprice,0:1)+temperature + ns(precip,3)+ ns(UnempRate,3)+ns(time,8*4), data = data.nyc, family = "poisson")
+
+fit3 = glm(fatal ~ Lag(gasprice,0:1)+temperature+ns(time,8*4), data = data.nyc, family = "poisson")
+#summary(fit3)
+
+anova(fit3,fit2,test = "LRT") # use fit3
+
+fit4= glm(fatal ~ Lag(gasprice,0:2)+temperature+ns(time,8*4), data = data.nyc, family = "quasipoisson")
+summary(fit4)
+
+disper = summary(fit4)$dispersion
+```
+
+```{r model check}
+par(mfrow = c(2,2))
+plot(fit4)
+# check independence
+resid = residuals(fit4,"deviance")
+lag.plot(resid,9,do.lines=FALSE)
+par(mfrow=c(1,2))
+Acf(resid,lag.max = 8)
+plot(resid,xlab="Day",ylab="Residuals",pch=".")
+lines(resid)
+
+#check influential points
+plot(dffits(fit4))
+length(which(abs(dffits(fit4))>1))
+
+fit4.rm = glm(fatal ~ Lag(gasprice,0:12)+temperature+ns(UnempRate,3) +ns(time,8*1), data = data.nyc[which(abs(dffits(fit4))<=2),], family = "quasipoisson")
+
+summary(fit4.rm)
+
+#print in the latex format
+# library(knitr)
+# library(xtable)
+# coeff = xtable(summary(fit4)$coefficients[1:5,])
+# print(x =coeff, type="latex")
+
+coef_gas = summary(fit4)$coefficients[2:4,1:2]
+conf_gas = confint(fit4)[2:3,]
+response = 100*(exp(coef_gas)-1)
+response_gas= 100*(exp(conf_gas)-1)
+
+sumcoef_gas = sum(coef_gas[,1])
+respTotal = 100*(exp(sumcoef_gas)-1)
+
+conf_sum=sumcoef_gas+c(-1,1)*1.96*sqrt(sum(vcov(fit4)[2:4,2:4][lower.tri(vcov(fit4)[2:4,2:4])==F]))
+-100*(exp(conf_sum)-1)
+```
+
