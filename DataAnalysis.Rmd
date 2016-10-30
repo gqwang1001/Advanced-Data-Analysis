@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r loading packages}
-setwd("~/Google Drive/Project")
+#setwd("~/Google Drive/Project")
 library(dplyr)
 library(foreign)
 library(utils)
